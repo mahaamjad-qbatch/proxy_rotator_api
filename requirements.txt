@@ -1,2 +1,6 @@
 flask
 requests
+uvicorn
+gunicorn
+fastapi
+urllib3==1.26.7

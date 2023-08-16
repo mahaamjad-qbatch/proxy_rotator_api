@@ -1,25 +1,34 @@
-import random
 import time
 import requests
+import threading
 
 class ProxyManager:
     def __init__(self, proxy_list):
         self.proxy_list = proxy_list
-        self.current_proxy = random.choice(proxy_list)
-        self.last_rotation_time = time.time()
+        self.current_proxy_index = 0
+        self.lock = threading.Lock()
+        self.rotation_interval = 600
 
-    def rotate_proxy(self):
-        # Rotate proxy if 10 minutes have passed
-        if time.time() - self.last_rotation_time >= 600:
-            self.current_proxy = random.choice(self.proxy_list)
-            self.last_rotation_time = time.time()
+        self.rotation_thread = threading.Thread(target=self.rotate_proxies)
+        self.rotation_thread.daemon = True
+        self.rotation_thread.start()
+
+    def get_current_proxy(self):
+        with self.lock:
+            return self.proxy_list[self.current_proxy_index]
+
+    def rotate_proxies(self):
+        while True:
+            time.sleep(self.rotation_interval)
+            with self.lock:
+                self.current_proxy_index = (self.current_proxy_index + 1) % len(self.proxy_list)
 
     def proxy_request(self, url):
-        self.rotate_proxy()
-        print(f"********* PROXY", self.current_proxy)
+        proxy = self.get_current_proxy()
+        print(f"********* PROXY", proxy)
         proxies = {
-            "http": self.current_proxy,
-            "https": self.current_proxy
+            "http": proxy,
+            "https": proxy
         }
 
         # Proxy the request through the selected proxy server
